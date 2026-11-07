@@ -1,0 +1,687 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MarkItDown Generator Studio</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Marked for Markdown Parsing -->
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <!-- DOMPurify for Safe HTML -->
+  <script src="https://cdn.jsdelivr.net/npm/dompurify@3.1.6/dist/purify.min.js"></script>
+  <!-- Highlight.js for Code Highlighting -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <!-- JSZip for multi-file download -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#eef2ff',
+              100: '#e0e7ff',
+              500: '#6366f1',
+              600: '#4f46e5',
+              700: '#4338ca',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    /* Custom markdown preview styling */
+    .prose-dark {
+      color: #e2e8f0;
+      line-height: 1.7;
+    }
+    .prose-dark h1, .prose-dark h2, .prose-dark h3, .prose-dark h4 {
+      color: #ffffff;
+      font-weight: 700;
+      margin-top: 1.4em;
+      margin-bottom: 0.6em;
+      border-bottom: 1px solid #334155;
+      padding-bottom: 0.3em;
+    }
+    .prose-dark h1 { font-size: 1.85rem; }
+    .prose-dark h2 { font-size: 1.5rem; }
+    .prose-dark h3 { font-size: 1.25rem; }
+    .prose-dark p { margin-bottom: 1em; }
+    .prose-dark a { color: #818cf8; text-decoration: underline; }
+    .prose-dark table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 1.2em 0;
+      font-size: 0.95rem;
+    }
+    .prose-dark th, .prose-dark td {
+      border: 1px solid #334155;
+      padding: 8px 12px;
+      text-align: left;
+    }
+    .prose-dark th {
+      background-color: #1e293b;
+      font-weight: 600;
+      color: #f1f5f9;
+    }
+    .prose-dark tr:nth-child(even) { background-color: #0f172a80; }
+    .prose-dark ul, .prose-dark ol {
+      padding-left: 1.5em;
+      margin-bottom: 1em;
+    }
+    .prose-dark ul { list-style-type: disc; }
+    .prose-dark ol { list-style-type: decimal; }
+    .prose-dark li { margin-bottom: 0.25em; }
+    .prose-dark blockquote {
+      border-left: 4px solid #6366f1;
+      padding-left: 1rem;
+      color: #94a3b8;
+      font-style: italic;
+      margin: 1rem 0;
+      background: #1e293b40;
+      padding-top: 0.5rem;
+      padding-bottom: 0.5rem;
+      border-radius: 0 4px 4px 0;
+    }
+    .prose-dark code:not(pre code) {
+      background: #334155;
+      color: #f43f5e;
+      padding: 0.2em 0.4em;
+      border-radius: 4px;
+      font-size: 0.88em;
+    }
+    .prose-dark pre {
+      background: #090d16 !important;
+      border: 1px solid #1e293b;
+      border-radius: 8px;
+      padding: 1rem;
+      overflow-x: auto;
+      margin: 1rem 0;
+    }
+
+    /* Scrollbars */
+    ::-webkit-scrollbar { width: 8px; height: 8px; }
+    ::-webkit-scrollbar-track { background: #0f172a; }
+    ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: #475569; }
+  </style>
+</head>
+<body class="bg-[#0b0f19] text-slate-100 min-h-screen flex flex-col font-sans antialiased selection:bg-brand-500 selection:text-white">
+
+  <!-- Top Navigation -->
+  <header class="border-b border-slate-800 bg-[#0f172a]/80 backdrop-blur sticky top-0 z-50 px-6 py-3.5 flex items-center justify-between">
+    <div class="flex items-center space-x-3">
+      <div class="h-10 w-10 rounded-xl bg-gradient-to-tr from-brand-600 to-violet-500 flex items-center justify-center shadow-lg shadow-brand-500/20">
+        <i data-lucide="sparkles" class="w-5 h-5 text-white"></i>
+      </div>
+      <div>
+        <h1 class="font-bold text-lg leading-tight bg-gradient-to-r from-white via-slate-200 to-indigo-300 bg-clip-text text-transparent">
+          MarkItDown Studio
+        </h1>
+        <p class="text-xs text-slate-400">Powered by Microsoft MarkItDown 0.1.9</p>
+      </div>
+    </div>
+
+    <!-- Quick Format Badges -->
+    <div class="hidden lg:flex items-center gap-2 text-xs">
+      <span class="px-2.5 py-1 rounded-md bg-slate-800 text-slate-300 border border-slate-700/60 font-mono">PDF</span>
+      <span class="px-2.5 py-1 rounded-md bg-slate-800 text-slate-300 border border-slate-700/60 font-mono">DOCX</span>
+      <span class="px-2.5 py-1 rounded-md bg-slate-800 text-slate-300 border border-slate-700/60 font-mono">XLSX</span>
+      <span class="px-2.5 py-1 rounded-md bg-slate-800 text-slate-300 border border-slate-700/60 font-mono">PPTX</span>
+      <span class="px-2.5 py-1 rounded-md bg-slate-800 text-slate-300 border border-slate-700/60 font-mono">Audio/Image</span>
+      <span class="px-2.5 py-1 rounded-md bg-slate-800 text-slate-300 border border-slate-700/60 font-mono">YouTube</span>
+    </div>
+
+    <div class="flex items-center gap-3">
+      <button id="downloadZipBtn" class="hidden text-xs bg-slate-800 hover:bg-slate-700 text-slate-200 px-3 py-1.5 rounded-lg border border-slate-700 items-center gap-1.5 transition">
+        <i data-lucide="archive" class="w-4 h-4"></i>
+        <span>Download All (ZIP)</span>
+      </button>
+      <div class="flex items-center gap-1.5 text-xs text-emerald-400 bg-emerald-500/10 px-3 py-1.5 rounded-full border border-emerald-500/20">
+        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+        Ready
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Layout -->
+  <main class="flex-1 flex flex-col lg:flex-row overflow-hidden max-h-[calc(100vh-65px)]">
+    
+    <!-- Left Sidebar: Controls & Input -->
+    <section class="w-full lg:w-96 border-r border-slate-800/80 bg-[#0d1322] flex flex-col overflow-y-auto p-5 space-y-5">
+      
+      <!-- Tab Selector: File Upload vs URL -->
+      <div class="flex p-1 bg-slate-900/90 rounded-xl border border-slate-800">
+        <button id="tabFilesBtn" onclick="switchInputTab('files')" class="flex-1 py-1.5 text-xs font-semibold rounded-lg bg-brand-600 text-white shadow-sm flex items-center justify-center gap-1.5 transition">
+          <i data-lucide="upload" class="w-3.5 h-3.5"></i>
+          Files / Batch
+        </button>
+        <button id="tabUrlBtn" onclick="switchInputTab('url')" class="flex-1 py-1.5 text-xs font-semibold rounded-lg text-slate-400 hover:text-white flex items-center justify-center gap-1.5 transition">
+          <i data-lucide="globe" class="w-3.5 h-3.5"></i>
+          URL / YouTube
+        </button>
+      </div>
+
+      <!-- File Upload Zone -->
+      <div id="fileUploadContainer" class="space-y-4">
+        <div id="dropZone" class="border-2 border-dashed border-slate-700 hover:border-brand-500/80 bg-slate-900/40 hover:bg-brand-500/5 rounded-2xl p-6 text-center transition cursor-pointer group">
+          <input type="file" id="fileInput" multiple class="hidden" />
+          <div class="w-12 h-12 mx-auto rounded-full bg-slate-800 group-hover:bg-brand-600/20 group-hover:text-brand-400 text-slate-400 flex items-center justify-center transition">
+            <i data-lucide="cloud-upload" class="w-6 h-6"></i>
+          </div>
+          <p class="mt-3 text-sm font-medium text-slate-200">
+            Drag & drop your files here
+          </p>
+          <p class="text-xs text-slate-400 mt-1">or <span class="text-brand-400 underline font-medium">browse from device</span></p>
+          <p class="text-[11px] text-slate-400 mt-3">
+            PDF, DOCX, PPTX, XLSX, HTML, Images, Audio, CSV, JSON
+          </p>
+        </div>
+      </div>
+
+      <!-- URL Input Zone -->
+      <div id="urlInputContainer" class="hidden space-y-3">
+        <label class="block text-xs font-medium text-slate-300">Webpage or YouTube URL</label>
+        <div class="space-y-2">
+          <div class="relative">
+            <i data-lucide="link" class="w-4 h-4 text-slate-400 absolute left-3 top-3"></i>
+            <input type="url" id="urlInput" placeholder="https://example.com or youtube.com/..." class="w-full bg-slate-900 border border-slate-700 rounded-xl pl-9 pr-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500" />
+          </div>
+          <button onclick="convertUrl()" id="convertUrlBtn" class="w-full bg-brand-600 hover:bg-brand-500 text-white font-medium py-2 px-4 rounded-xl text-xs flex items-center justify-center gap-2 transition shadow-lg shadow-brand-600/20">
+            <i data-lucide="play" class="w-4 h-4"></i>
+            Convert URL to Markdown
+          </button>
+        </div>
+      </div>
+
+      <!-- Processing Status Indicator -->
+      <div id="loadingStatus" class="hidden bg-slate-900/90 border border-brand-500/30 rounded-xl p-3.5 flex items-center gap-3 animate-pulse">
+        <i data-lucide="loader-2" class="w-5 h-5 text-brand-400 animate-spin"></i>
+        <div class="flex-1">
+          <p class="text-xs font-medium text-slate-200" id="loadingText">Converting file...</p>
+          <p class="text-[11px] text-slate-400" id="loadingSubtext">Please wait a moment</p>
+        </div>
+      </div>
+
+      <!-- Session File List -->
+      <div class="flex-1 flex flex-col min-h-[160px]">
+        <div class="flex items-center justify-between pb-2 border-b border-slate-800">
+          <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">Converted Files</span>
+          <span id="fileCountBadge" class="text-[11px] bg-slate-800 text-slate-400 px-2 py-0.5 rounded-full font-mono">0</span>
+        </div>
+        
+        <div id="fileList" class="space-y-1.5 mt-2.5 overflow-y-auto max-h-60 flex-1 pr-1">
+          <div id="emptyListPlaceholder" class="text-center py-8 text-xs text-slate-400">
+            No files converted yet.<br>Upload a file to get started!
+          </div>
+        </div>
+      </div>
+
+      <!-- Footer Info -->
+      <div class="pt-3 border-t border-slate-800 text-[11px] text-slate-400 flex justify-between items-center">
+        <span>Vibe Coding Studio</span>
+        <span class="text-slate-400">Local Instance</span>
+      </div>
+
+    </section>
+
+    <!-- Right Content Area: Markdown Preview & Editor -->
+    <section class="flex-1 flex flex-col bg-[#0b0f19] overflow-hidden">
+      
+      <!-- Document Action Bar -->
+      <div class="border-b border-slate-800 bg-[#0f172a]/60 px-6 py-2.5 flex flex-wrap items-center justify-between gap-3">
+        <div class="flex items-center space-x-3 overflow-hidden">
+          <i data-lucide="file-text" class="w-4 h-4 text-brand-400 flex-shrink-0"></i>
+          <span id="activeFileName" class="text-sm font-semibold text-slate-200 truncate max-w-xs md:max-w-md">No document selected</span>
+        </div>
+
+        <div class="flex items-center space-x-2">
+          <!-- View Toggle -->
+          <div class="flex bg-slate-900 border border-slate-700/80 rounded-lg p-0.5 text-xs">
+            <button id="viewPreviewBtn" onclick="setViewMode('preview')" class="px-3 py-1 font-medium rounded-md bg-brand-600 text-white transition flex items-center gap-1.5">
+              <i data-lucide="eye" class="w-3.5 h-3.5"></i>
+              Rendered
+            </button>
+            <button id="viewRawBtn" onclick="setViewMode('raw')" class="px-3 py-1 font-medium rounded-md text-slate-400 hover:text-white transition flex items-center gap-1.5">
+              <i data-lucide="code-2" class="w-3.5 h-3.5"></i>
+              Markdown
+            </button>
+            <button id="viewSplitBtn" onclick="setViewMode('split')" class="px-3 py-1 font-medium rounded-md text-slate-400 hover:text-white transition hidden md:flex items-center gap-1.5">
+              <i data-lucide="columns-2" class="w-3.5 h-3.5"></i>
+              Split
+            </button>
+          </div>
+
+          <!-- Actions -->
+          <button id="copyBtn" onclick="copyCurrentMarkdown()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 px-3 py-1.5 rounded-lg border border-slate-700 text-xs font-medium flex items-center gap-1.5 transition">
+            <i data-lucide="copy" class="w-3.5 h-3.5"></i>
+            <span id="copyBtnText">Copy</span>
+          </button>
+
+          <button id="downloadMdBtn" onclick="downloadCurrentMarkdown()" class="bg-brand-600 hover:bg-brand-500 text-white px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 transition shadow-sm">
+            <i data-lucide="download" class="w-3.5 h-3.5"></i>
+            Download .md
+          </button>
+        </div>
+      </div>
+
+      <!-- Editor / Preview Pane -->
+      <div id="contentContainer" class="flex-1 flex overflow-hidden p-6 gap-4">
+        
+        <!-- Rendered HTML Container -->
+        <div id="renderedPane" class="flex-1 overflow-y-auto bg-slate-900/40 border border-slate-800/80 rounded-2xl p-8 backdrop-blur-sm shadow-inner">
+          <div id="previewContent" class="prose-dark max-w-4xl mx-auto">
+            <div class="text-center py-24 text-slate-400">
+              <div class="w-16 h-16 mx-auto mb-4 rounded-2xl bg-slate-800/60 border border-slate-700/50 flex items-center justify-center text-slate-400">
+                <i data-lucide="file-up" class="w-8 h-8"></i>
+              </div>
+              <h3 class="text-base font-semibold text-slate-300 mb-1">Ready to Convert</h3>
+              <p class="text-xs max-w-sm mx-auto text-slate-400">Upload any document, spreadsheet, PDF, presentation, or paste a URL to generate clean, structured Markdown.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Raw Markdown Textarea -->
+        <div id="rawPane" class="flex-1 hidden overflow-hidden bg-slate-950 border border-slate-800/90 rounded-2xl shadow-inner flex-col">
+          <div class="px-4 py-2 border-b border-slate-800/80 bg-slate-900/60 flex items-center justify-between text-xs text-slate-400">
+            <span class="font-mono">markdown source (editable)</span>
+            <div id="statsBadge" class="space-x-3 font-mono text-[11px]">
+              <span id="wordCount">0 words</span>
+              <span>•</span>
+              <span id="charCount">0 characters</span>
+            </div>
+          </div>
+          <textarea id="rawTextarea" oninput="onRawTextChange()" class="w-full flex-1 p-6 bg-transparent text-slate-200 font-mono text-sm leading-relaxed focus:outline-none resize-none" placeholder="# Converted markdown will appear here..."></textarea>
+        </div>
+
+      </div>
+
+    </section>
+
+  </main>
+
+  <!-- Notification Toast -->
+  <div id="toast" class="fixed bottom-6 right-6 bg-slate-800 border border-slate-700 text-slate-200 px-4 py-2.5 rounded-xl shadow-2xl flex items-center gap-2.5 text-xs font-medium transform translate-y-20 opacity-0 transition-all duration-300 z-50">
+    <i data-lucide="check-circle" class="w-4 h-4 text-emerald-400" id="toastIcon"></i>
+    <span id="toastMessage">Success</span>
+  </div>
+
+  <script>
+    // State
+    let convertedFiles = [];
+    let activeIndex = -1;
+    let currentViewMode = 'preview';
+
+    // Elements
+    const dropZone = document.getElementById('dropZone');
+    const fileInput = document.getElementById('fileInput');
+    const loadingStatus = document.getElementById('loadingStatus');
+    const loadingText = document.getElementById('loadingText');
+    const loadingSubtext = document.getElementById('loadingSubtext');
+    const fileList = document.getElementById('fileList');
+    const emptyListPlaceholder = document.getElementById('emptyListPlaceholder');
+    const fileCountBadge = document.getElementById('fileCountBadge');
+    const activeFileName = document.getElementById('activeFileName');
+    const previewContent = document.getElementById('previewContent');
+    const rawTextarea = document.getElementById('rawTextarea');
+    const renderedPane = document.getElementById('renderedPane');
+    const rawPane = document.getElementById('rawPane');
+    const wordCount = document.getElementById('wordCount');
+    const charCount = document.getElementById('charCount');
+    const downloadZipBtn = document.getElementById('downloadZipBtn');
+
+    // Initialize Lucide Icons
+    lucide.createIcons();
+
+    // Setup Marked.js with Highlight.js
+    marked.setOptions({
+      highlight: function(code, lang) {
+        if (lang && hljs.getLanguage(lang)) {
+          return hljs.highlight(code, { language: lang }).value;
+        }
+        return hljs.highlightAuto(code).value;
+      },
+      breaks: true,
+      gfm: true
+    });
+
+    // Drag and Drop listeners
+    dropZone.addEventListener('click', () => fileInput.click());
+    
+    ['dragenter', 'dragover'].forEach(eventName => {
+      dropZone.addEventListener(eventName, (e) => {
+        e.preventDefault();
+        dropZone.classList.add('border-brand-500', 'bg-brand-500/10');
+      }, false);
+    });
+
+    ['dragleave', 'drop'].forEach(eventName => {
+      dropZone.addEventListener(eventName, (e) => {
+        e.preventDefault();
+        dropZone.classList.remove('border-brand-500', 'bg-brand-500/10');
+      }, false);
+    });
+
+    dropZone.addEventListener('drop', (e) => {
+      const dt = e.dataTransfer;
+      const files = dt.files;
+      if (files.length) handleFiles(files);
+    });
+
+    fileInput.addEventListener('change', (e) => {
+      if (e.target.files.length) {
+        handleFiles(e.target.files);
+      }
+    });
+
+    // Switch Left Tabs
+    function switchInputTab(tab) {
+      const fileContainer = document.getElementById('fileUploadContainer');
+      const urlContainer = document.getElementById('urlInputContainer');
+      const tabFilesBtn = document.getElementById('tabFilesBtn');
+      const tabUrlBtn = document.getElementById('tabUrlBtn');
+
+      if (tab === 'files') {
+        fileContainer.classList.remove('hidden');
+        urlContainer.classList.add('hidden');
+        tabFilesBtn.className = "flex-1 py-1.5 text-xs font-semibold rounded-lg bg-brand-600 text-white shadow-sm flex items-center justify-center gap-1.5 transition";
+        tabUrlBtn.className = "flex-1 py-1.5 text-xs font-semibold rounded-lg text-slate-400 hover:text-white flex items-center justify-center gap-1.5 transition";
+      } else {
+        fileContainer.classList.add('hidden');
+        urlContainer.classList.remove('hidden');
+        tabUrlBtn.className = "flex-1 py-1.5 text-xs font-semibold rounded-lg bg-brand-600 text-white shadow-sm flex items-center justify-center gap-1.5 transition";
+        tabFilesBtn.className = "flex-1 py-1.5 text-xs font-semibold rounded-lg text-slate-400 hover:text-white flex items-center justify-center gap-1.5 transition";
+      }
+    }
+
+    // Process Files
+    async function handleFiles(fileListObj) {
+      const files = Array.from(fileListObj);
+      if (!files.length) return;
+
+      showLoading(true, `Converting ${files.length} file(s)...`, 'Processing via MarkItDown');
+
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        loadingText.textContent = `Converting (${i + 1}/${files.length}): ${file.name}`;
+        
+        const formData = new FormData();
+        formData.append('file', file);
+
+        try {
+          const res = await fetch('/api/convert', {
+            method: 'POST',
+            body: formData
+          });
+
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.detail || 'Conversion failed');
+
+          addConvertedItem({
+            name: file.name,
+            size: formatBytes(file.size),
+            type: file.name.split('.').pop().toUpperCase(),
+            markdown: data.markdown
+          });
+
+        } catch (err) {
+          showToast(`Error on ${file.name}: ${err.message}`, true);
+        }
+      }
+
+      showLoading(false);
+      fileInput.value = '';
+    }
+
+    // Convert URL
+    async function convertUrl() {
+      const urlInput = document.getElementById('urlInput');
+      const url = urlInput.value.trim();
+      if (!url) {
+        showToast('Please enter a valid URL', true);
+        return;
+      }
+
+      showLoading(true, 'Fetching and converting URL...', url);
+
+      try {
+        const res = await fetch('/api/convert-url', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url: url })
+        });
+
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || 'URL conversion failed');
+
+        let displayTitle = data.title || url.replace(/^https?:\/\//, '');
+        if (displayTitle.length > 35) displayTitle = displayTitle.substring(0, 32) + '...';
+
+        addConvertedItem({
+          name: displayTitle,
+          size: 'Web/URL',
+          type: url.includes('youtube') || url.includes('youtu.be') ? 'YT' : 'URL',
+          markdown: data.markdown
+        });
+
+        urlInput.value = '';
+        showToast('URL converted successfully!');
+      } catch (err) {
+        showToast(`Failed: ${err.message}`, true);
+      } finally {
+        showLoading(false);
+      }
+    }
+
+    // Add item to state
+    function addConvertedItem(item) {
+      convertedFiles.unshift(item);
+      updateFileListUI();
+      selectFile(0);
+      showToast(`Successfully converted ${item.name}`);
+    }
+
+    // Render list
+    function updateFileListUI() {
+      emptyListPlaceholder.classList.toggle('hidden', convertedFiles.length > 0);
+      downloadZipBtn.classList.toggle('hidden', convertedFiles.length <= 1);
+      downloadZipBtn.onclick = downloadAllAsZip;
+      fileCountBadge.textContent = convertedFiles.length;
+
+      fileList.innerHTML = '';
+      convertedFiles.forEach((file, index) => {
+        const itemEl = document.createElement('div');
+        const isActive = index === activeIndex;
+        itemEl.className = `p-2.5 rounded-xl text-xs flex items-center justify-between cursor-pointer transition border ${
+          isActive 
+            ? 'bg-brand-600/15 border-brand-500/50 text-white' 
+            : 'bg-slate-900/60 hover:bg-slate-800/80 border-slate-800 text-slate-300'
+        }`;
+
+        itemEl.onclick = () => selectFile(index);
+        itemEl.innerHTML = `
+          <div class="flex items-center space-x-2.5 overflow-hidden">
+            <span class="px-1.5 py-0.5 rounded text-[10px] font-mono font-bold ${
+              isActive ? 'bg-brand-500 text-white' : 'bg-slate-800 text-slate-400'
+            }">${file.type}</span>
+            <span class="truncate font-medium">${file.name}</span>
+          </div>
+          <span class="text-[10px] text-slate-400 flex-shrink-0 ml-2 font-mono">${file.size}</span>
+        `;
+        fileList.appendChild(itemEl);
+      });
+    }
+
+    // Select active file
+    function selectFile(index) {
+      if (index < 0 || index >= convertedFiles.length) return;
+      activeIndex = index;
+      updateFileListUI();
+
+      const file = convertedFiles[activeIndex];
+      activeFileName.textContent = file.name;
+      rawTextarea.value = file.markdown;
+      renderMarkdown(file.markdown);
+      updateStats(file.markdown);
+    }
+
+    // Render Markdown to HTML preview
+    function renderMarkdown(md) {
+      const rawHtml = marked.parse(md || '');
+      previewContent.innerHTML = DOMPurify.sanitize(rawHtml);
+    }
+
+    // Update word & char stats
+    function updateStats(text) {
+      const words = text.trim() ? text.trim().split(/\s+/).length : 0;
+      const chars = text.length;
+      wordCount.textContent = `${words.toLocaleString()} words`;
+      charCount.textContent = `${chars.toLocaleString()} characters`;
+    }
+
+    // When editing raw text
+    function onRawTextChange() {
+      if (activeIndex >= 0 && convertedFiles[activeIndex]) {
+        const updated = rawTextarea.value;
+        convertedFiles[activeIndex].markdown = updated;
+        renderMarkdown(updated);
+        updateStats(updated);
+      }
+    }
+
+    // View mode switching: preview, raw, split
+    function setViewMode(mode) {
+      currentViewMode = mode;
+      const btnPreview = document.getElementById('viewPreviewBtn');
+      const btnRaw = document.getElementById('viewRawBtn');
+      const btnSplit = document.getElementById('viewSplitBtn');
+
+      [btnPreview, btnRaw, btnSplit].forEach(btn => {
+        btn.className = "px-3 py-1 font-medium rounded-md text-slate-400 hover:text-white transition flex items-center gap-1.5";
+      });
+
+      if (mode === 'preview') {
+        btnPreview.className = "px-3 py-1 font-medium rounded-md bg-brand-600 text-white transition flex items-center gap-1.5";
+        renderedPane.classList.remove('hidden');
+        renderedPane.className = "flex-1 overflow-y-auto bg-slate-900/40 border border-slate-800/80 rounded-2xl p-8 backdrop-blur-sm shadow-inner";
+        rawPane.classList.add('hidden');
+      } else if (mode === 'raw') {
+        btnRaw.className = "px-3 py-1 font-medium rounded-md bg-brand-600 text-white transition flex items-center gap-1.5";
+        renderedPane.classList.add('hidden');
+        rawPane.classList.remove('hidden');
+        rawPane.className = "flex-1 flex overflow-hidden bg-slate-950 border border-slate-800/90 rounded-2xl shadow-inner flex-col";
+      } else if (mode === 'split') {
+        btnSplit.className = "px-3 py-1 font-medium rounded-md bg-brand-600 text-white transition hidden md:flex items-center gap-1.5";
+        renderedPane.classList.remove('hidden');
+        renderedPane.className = "w-1/2 overflow-y-auto bg-slate-900/40 border border-slate-800/80 rounded-2xl p-6 backdrop-blur-sm shadow-inner";
+        rawPane.classList.remove('hidden');
+        rawPane.className = "w-1/2 flex overflow-hidden bg-slate-950 border border-slate-800/90 rounded-2xl shadow-inner flex-col";
+      }
+    }
+
+    // Copy to clipboard
+    async function copyCurrentMarkdown() {
+      if (activeIndex < 0) {
+        showToast('No document to copy', true);
+        return;
+      }
+      const text = rawTextarea.value;
+      await navigator.clipboard.writeText(text);
+      
+      const copyBtnText = document.getElementById('copyBtnText');
+      copyBtnText.textContent = 'Copied!';
+      showToast('Markdown copied to clipboard!');
+      setTimeout(() => copyBtnText.textContent = 'Copy', 2000);
+    }
+
+    // Download current markdown
+    function downloadCurrentMarkdown() {
+      if (activeIndex < 0) {
+        showToast('No document to download', true);
+        return;
+      }
+      const file = convertedFiles[activeIndex];
+      const baseName = file.name.replace(/\.[^/.]+$/, "");
+      const fileName = `${baseName}.md`;
+      const blob = new Blob([file.markdown], { type: 'text/markdown;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = fileName;
+      a.click();
+      URL.revokeObjectURL(url);
+      showToast(`Downloaded ${fileName}`);
+    }
+
+    // Download All as ZIP
+    async function downloadAllAsZip() {
+      if (!convertedFiles.length) return;
+      const zip = new JSZip();
+      convertedFiles.forEach(file => {
+        const baseName = file.name.replace(/\.[^/.]+$/, "");
+        zip.file(`${baseName}.md`, file.markdown);
+      });
+      const content = await zip.generateAsync({ type: 'blob' });
+      const url = URL.createObjectURL(content);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `markitdown_export_${new Date().toISOString().slice(0, 10)}.zip`;
+      a.click();
+      URL.revokeObjectURL(url);
+      showToast('Downloaded ZIP with all converted files!');
+    }
+
+    // Helper: Toast
+    function showToast(message, isError = false) {
+      const toast = document.getElementById('toast');
+      const toastMessage = document.getElementById('toastMessage');
+      const toastIcon = document.getElementById('toastIcon');
+
+      toastMessage.textContent = message;
+      if (isError) {
+        toast.className = "fixed bottom-6 right-6 bg-rose-950 border border-rose-800 text-rose-200 px-4 py-2.5 rounded-xl shadow-2xl flex items-center gap-2.5 text-xs font-medium z-50 transition-all duration-300";
+        toastIcon.setAttribute('data-lucide', 'alert-circle');
+        toastIcon.className = "w-4 h-4 text-rose-400";
+      } else {
+        toast.className = "fixed bottom-6 right-6 bg-slate-800 border border-slate-700 text-slate-200 px-4 py-2.5 rounded-xl shadow-2xl flex items-center gap-2.5 text-xs font-medium z-50 transition-all duration-300";
+        toastIcon.setAttribute('data-lucide', 'check-circle');
+        toastIcon.className = "w-4 h-4 text-emerald-400";
+      }
+      lucide.createIcons();
+
+      // Animate in
+      toast.classList.remove('translate-y-20', 'opacity-0');
+      setTimeout(() => {
+        toast.classList.add('translate-y-20', 'opacity-0');
+      }, 3000);
+    }
+
+    // Helper: Loading
+    function showLoading(show, title = '', subtitle = '') {
+      loadingStatus.classList.toggle('hidden', !show);
+      if (show) {
+        loadingText.textContent = title;
+        loadingSubtext.textContent = subtitle;
+      }
+    }
+
+    // Helper: Format Bytes
+    function formatBytes(bytes, decimals = 1) {
+      if (!+bytes) return '0 B';
+      const k = 1024;
+      const dm = decimals < 0 ? 0 : decimals;
+      const sizes = ['B', 'KB', 'MB', 'GB'];
+      const i = Math.floor(Math.log(bytes) / Math.log(k));
+      return `${parseFloat((bytes / Math.pow(k, i)).toFixed(dm))} ${sizes[i]}`;
+    }
+  </script>
+</body>
+</html>
+

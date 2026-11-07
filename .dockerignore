@@ -1,0 +1,14 @@
+.venv
+venv
+__pycache__
+*.pyc
+temp_uploads
+output
+output_watch
+input_watch
+markitdown
+.git
+.gitignore
+.dockerignore
+run_web.bat
+
